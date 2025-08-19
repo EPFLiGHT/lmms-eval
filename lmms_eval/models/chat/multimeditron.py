@@ -4,6 +4,7 @@ from multimeditron.model.model import MultiModalModelForCausalLM
 from multimeditron.model.data_loader import DataCollatorForMultimodal
 import torch
 from transformers import AutoTokenizer
+from tqdm import tqdm
 
 from loguru import logger as eval_logger
 
@@ -29,14 +30,14 @@ class MultiMeditron(lmms):
         self.attachment_token = attachment_token
         
         try:
-            self.tokenizer = AutoTokenizer.from_pretrained(pretrained)
+            self.tokenizer = AutoTokenizer.from_pretrained(pretrained, padding_side="left", use_fast=True)
         except:
             default_llm = kwargs.pop("default_llm", None)
             if default_llm is None:
                 raise ValueError("Default LLM must be specified if tokenizer loading fails.")
 
             eval_logger.warning(f"Loading tokenizer from {default_llm}")
-            self.tokenizer = AutoTokenizer.from_pretrained(default_llm)
+            self.tokenizer = AutoTokenizer.from_pretrained(default_llm, padding_side="left", use_fast=True)
 
         self.tokenizer.pad_token = self.tokenizer.eos_token
 
@@ -45,7 +46,8 @@ class MultiMeditron(lmms):
                 tokenizer=self.tokenizer,
                 tokenizer_type=tokenizer_type,
                 modality_processors=self.model.processors(), 
-                attachment_token_idx=attachment_token_idx
+                attachment_token_idx=attachment_token_idx,
+                add_generation_prompt=True,
         )
 
         self.batch_size = int(batch_size)
@@ -55,19 +57,27 @@ class MultiMeditron(lmms):
         results = []
         all_messages = []
 
-        for request in requests:
+        single_gen_kwargs = None
+
+        for request in tqdm(requests, desc="Processing requests"):
             question, doc_to_messages, gen_kwargs, doc_id, task, split = request.args
             doc = self.task_dict[task][split][doc_id]
             messages = self.map_messages_to_multimeditron_format(doc_to_messages(doc))
             all_messages.append(messages)
 
-        for i in range(0, len(all_messages), self.batch_size):
+            single_gen_kwargs = gen_kwargs if single_gen_kwargs is None else single_gen_kwargs
+
+        if single_gen_kwargs is None:
+            single_gen_kwargs = {}
+
+        for i in tqdm(range(0, len(all_messages), self.batch_size), desc="Generating responses"):
             batch_messages = all_messages[i:i + self.batch_size]
             batch = self.collator(batch_messages)
 
             outputs = self.model.generate(
                 input_ids=batch["input_ids"],
                 processed_multimodal_inputs=batch["processed_multimodal_inputs"],
+                **single_gen_kwargs
             )
 
             decoded_outputs = self.tokenizer.batch_decode(outputs, skip_special_tokens=True, clean_up_tokenization_spaces=True)
