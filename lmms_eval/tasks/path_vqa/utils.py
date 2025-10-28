@@ -1,12 +1,12 @@
 from __future__ import annotations
 import re
 from typing import Any, Dict, List, Optional
-
 from PIL import Image
 from loguru import logger as eval_logger
 
-
-# ---------- normalization & parsing ----------
+# ---------------------------
+# normalization & parsing
+# ---------------------------
 _ARTICLES = {"a", "an", "the"}
 _NUM_MAP = {
     "zero":"0","one":"1","two":"2","three":"3","four":"4",
@@ -47,8 +47,9 @@ def _extract_final_answer(text: str) -> str:
             return line
     return text.strip()
 
-
-# ---------- PathVQA task adapters ----------
+# ---------------------------
+# PathVQA task adapters
+# ---------------------------
 def pathvqa_doc_to_text(
     doc: Dict[str, Any],
     lmms_eval_specific_kwargs: Optional[Dict[str, Any]] = None

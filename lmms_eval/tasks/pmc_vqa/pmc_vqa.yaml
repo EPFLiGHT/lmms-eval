@@ -15,7 +15,7 @@ doc_to_text: !function utils.pmc_vqa_doc_to_text
 doc_to_target: !function utils.pmc_vqa_doc_to_target
 
 generation_kwargs:
-  max_new_tokens: 2048
+  max_new_tokens: 8
   temperature: 0.0
   do_sample: False
 
@@ -31,4 +31,4 @@ lmms_eval_specific_kwargs:
   default:
     dataset_repo: *repo 
     pre_prompt: ""
-    post_prompt: "Let's think step by step. Detail your reasoning before answering carefully. Your answer should have the following format: <reasoning leading to the answer> Answer: <letter> The <letter> is chosen amongst the possible options (A, B, C or D)"
+    post_prompt: "Return only the final choice letter on a single line: A, B, C, or D. Do not add punctuation or explanation."
