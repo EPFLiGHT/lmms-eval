@@ -73,20 +73,21 @@ class MultiMeditron(lmms):
 
         if single_gen_kwargs is None:
             single_gen_kwargs = {}
+        
+        with torch.autocast(self.device, self.model.dtype):
+            for i in tqdm(range(0, len(all_messages), self.batch_size), desc="Generating responses"):
+                batch_messages = all_messages[i:i + self.batch_size]
+                batch = self.collator(batch_messages)
 
-        for i in tqdm(range(0, len(all_messages), self.batch_size), desc="Generating responses"):
-            batch_messages = all_messages[i:i + self.batch_size]
-            batch = self.collator(batch_messages)
+                outputs = self.model.generate(
+                    batch=batch,
+                    **single_gen_kwargs
+                )
 
-            outputs = self.model.generate(
-                batch=batch,
-                **single_gen_kwargs
-            )
+                decoded_outputs = self.tokenizer.batch_decode(outputs, skip_special_tokens=True, clean_up_tokenization_spaces=True)
 
-            decoded_outputs = self.tokenizer.batch_decode(outputs, skip_special_tokens=True, clean_up_tokenization_spaces=True)
-
-            eval_logger.info(f"Sample outputs: {decoded_outputs[0]}")
-            results.extend(decoded_outputs)
+                eval_logger.info(f"Sample outputs: {decoded_outputs[0]}")
+                results.extend(decoded_outputs)
 
         return results
 
