@@ -21,7 +21,6 @@ def gmai_doc_to_visual(doc):
     image = image.convert("RGB")
     return [image]
 
-
 def gmai_doc_to_text(doc,lmms_eval_specific_kwargs=None):
     question = doc["question"].strip()
     question = question + "\nOptions:"
@@ -34,6 +33,9 @@ def gmai_doc_to_text(doc,lmms_eval_specific_kwargs=None):
     if "post_prompt" in lmms_eval_specific_kwargs and lmms_eval_specific_kwargs["post_prompt"] != "":
         question = f"{question}{lmms_eval_specific_kwargs['post_prompt']}"
     return question
+
+def gmai_doc_to_choice(doc):
+    return ["A", "B", "C", "D", "E"]
 
 def gmai_parse_results(pred, valid_options=("a", "b", "c", "d", "e")):
     """
@@ -106,5 +108,5 @@ def gmai_aggregate_results(results):
 
     eval_logger.info(f"Overall Accuracy: {accuracy:.2f}")
 
-    return  accuracy
+    return accuracy
 

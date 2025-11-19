@@ -4,6 +4,7 @@ from multimeditron.dataset.loader import FileSystemImageLoader, RawImageLoader
 from multimeditron.model.model import MultiModalModelForCausalLM
 from multimeditron.model.data_loader import DataCollatorForMultimodal
 import torch
+import torch.nn.functional as F
 from transformers import AutoTokenizer
 from tqdm import tqdm
 
@@ -15,7 +16,7 @@ from lmms_eval.api.registry import register_model
 
 @register_model("multimeditron")
 class MultiMeditron(lmms):
-    is_simple = False
+    # is_simple = False
 
     def __init__(self, pretrained: str, device: str = "cuda", 
                  attachment_token: str = "<|reserved_special_token_0|>", 
@@ -123,8 +124,64 @@ class MultiMeditron(lmms):
 
 
     def loglikelihood(self, requests: List[Instance]) -> List[Tuple[float, bool]]:
-        return super().loglikelihood(requests)
+        all_messages = []
+        answers_ids = []
+        for request in tqdm(requests, desc="Processing requests"):
+            contexts, doc_to_target, doc_to_visual, doc_id, task, split = request.args
+            doc = self.task_dict[task][split][doc_id]
 
+            images = doc_to_visual(doc)
+
+            attachments = "".join([self.attachment_token for _ in range(len(images))])
+
+            if not isinstance(doc_to_target, str):
+                label = doc_to_target(doc)
+            else:
+                label = doc_to_target
+
+            messages = {
+                    "text" : f"{attachments} {contexts}{label}",
+                "modalities" : [
+                    {"type" : "image", "value" : img} 
+                    for img in images
+                ]
+            }
+
+            all_messages.append(messages)
+            
+            label_ids = self.tokenizer(label, return_tensors="pt")["input_ids"][0]
+            label_ids = label_ids.to(self.device)
+            answers_ids.append(label_ids)
+        
+
+        all_log_probs = []
+
+        for i in tqdm(range(0, len(all_messages), self.batch_size), desc="Generating responses"):
+            batch_messages = all_messages[i:i + self.batch_size]
+            batch_label_ids = answers_ids[i:i + self.batch_size]
+
+            batch = self.collator(batch_messages)
+
+            outputs = self.model(**batch)
+
+            
+            # Shift logits
+            logits = outputs.logits[:, :, :].squeeze(1)
+            
+            for i, label_ids in enumerate(batch_label_ids):
+                answer_logits = logits[i, -len(label_ids):, :]
+
+                greedy_tokens = answer_logits.argmax(dim=1)
+                max_equal = (greedy_tokens == label_ids).all()
+
+                log_probs = answer_logits.gather(dim=-1, index=label_ids.unsqueeze(-1)).squeeze(-1)
+                log_prob = log_probs.sum().item() 
+
+                all_log_probs.append((log_prob, bool(max_equal)))
+        
+        return all_log_probs
+
+            
     def generate_until_multi_round(self, requests) -> List[str]:
         return super().generate_until_multi_round(requests)
 
