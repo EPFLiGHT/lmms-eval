@@ -47,6 +47,7 @@ AVAILABLE_SIMPLE_MODELS = {
     "minimonkey": "MiniMonkey",
     "moviechat": "MovieChat",
     "mplug_owl_video": "mplug_Owl",
+    "multimeditron_simple": "MultiMeditronSimple",
     "ola": "Ola",
     "openai_compatible": "OpenAICompatible",
     "oryx": "Oryx",

@@ -35,7 +35,13 @@ def gmai_doc_to_text(doc,lmms_eval_specific_kwargs=None):
     return question
 
 def gmai_doc_to_choice(doc):
-    return ["A", "B", "C", "D", "E"]
+    letters = ["A", "B", "C", "D", "E"]
+    choices = []
+    for l in letters:
+        if l in doc and doc[l] is not None and doc[l] != "":
+            choices.append(f"{doc[l]}")
+
+    return choices
 
 def gmai_parse_results(pred, valid_options=("a", "b", "c", "d", "e")):
     """
