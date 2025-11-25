@@ -15,6 +15,9 @@ from lmms_eval.filters.transformation import MapFilter
 eval_logger = logging.getLogger("lmms-eval")
 
 
+def gmai_doc_to_formatted_target(doc):
+    return f"Answer: {doc['answer']}"
+
 def gmai_doc_to_visual(doc):
     image_data = base64.b64decode(doc['image'])
     image = Image.open(io.BytesIO(image_data))

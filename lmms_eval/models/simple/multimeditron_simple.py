@@ -66,6 +66,12 @@ class MultiMeditronSimple(lmms):
 
         self.batch_size = int(batch_size)
 
+        if self.tokenizer.eos_token_id is not None:
+            self.eos_length = 1
+        else:
+            self.eos_length = 0
+
+
     def loglikelihood(self, requests: List[Instance]) -> List[Tuple[float, bool]]:
         res = []
         for request in tqdm(requests, desc="Processing requests"):
@@ -74,7 +80,7 @@ class MultiMeditronSimple(lmms):
             batch = self.collator([messages])
             
             prompt_ids = self.compute_prompt_ids(messages).to(self.device)
-            continuation_ids = batch["input_ids"][0, len(prompt_ids) :].to(self.device)
+            continuation_ids = batch["input_ids"][0, len(prompt_ids) : -self.eos_length].to(self.device)
 
             outputs = self.model(**batch)
 
@@ -82,13 +88,12 @@ class MultiMeditronSimple(lmms):
             logits = outputs["logits"][0][:-1]
             greedy_tokens = logits.argmax(dim=-1).to(self.device)
 
-            greedy_tokens = greedy_tokens[prompt_ids.shape[0] - 1:]
+            greedy_tokens = greedy_tokens[prompt_ids.shape[0] - 1: -self.eos_length]
 
             max_equal = (greedy_tokens == continuation_ids).all()
 
             res.append((float(loss.item()), bool(max_equal)))
 
-        print(res)
         return res
 
     def compute_prompt_ids(self, messages: Dict[str, Any]) -> torch.Tensor:
