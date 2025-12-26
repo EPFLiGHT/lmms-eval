@@ -595,6 +595,7 @@ def evaluate(
                         ),
                         # Removing prompt hash and target hash here
                     }
+
                     example.update(metrics)
                     task_output.logged_samples.append(example)
                 for metric, value in metrics.items():

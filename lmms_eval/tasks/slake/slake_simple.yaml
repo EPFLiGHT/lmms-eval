@@ -1,0 +1,35 @@
+dataset_path: &repo BoKelvin/SLAKE
+
+task: "slake_simple"
+
+dataset_kwargs:
+  token: True
+test_split: test        # use "validation" if you prefer the val set
+
+output_type: loglikelihood
+doc_to_visual: !function utils.slake_doc_to_visual
+doc_to_text: !function utils.slake_doc_to_text
+doc_to_target: !function utils.slake_doc_to_target
+
+generation_kwargs:
+  max_new_tokens: 64
+  do_sample: False
+
+metric_list:
+  - metric: acc
+    aggregation: mean
+    higher_is_better: true
+  - metric: perplexity
+    aggregation: mean
+    higher_is_better: false
+
+metadata:
+  - version: 0.0
+
+lmms_eval_specific_kwargs:
+  default:
+    dataset_repo: *repo     # used by utils to auto-download imgs.zip
+    # Filter to English by default (dataset has en/zh). Change to "zh" to evaluate Chinese.
+    q_lang: "en"
+    pre_prompt: ""
+    post_prompt: "Answer with a single word or short phrase only. If the question lists options (e.g., “lung, liver or heart”), choose exactly one of the listed options and output that word alone. For yes/no questions, answer only “Yes” or “No”."

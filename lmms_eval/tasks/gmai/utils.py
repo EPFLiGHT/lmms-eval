@@ -64,7 +64,7 @@ def gmai_parse_results(pred, valid_options=("a", "b", "c", "d", "e")):
     pred = pred.lower().strip()
 
     # If 'answer:' appears anywhere, keep only what's after it
-    answer_match = re.search(r"answer\s*:\s*(.*)", pred)
+    answer_match = re.search(r"(?i)answer\W(?:is)*\W*([A-D])(?:\W|$)|(?:answer|boxed)?{\W*([A-D])\W+", pred)
     if answer_match:
         pred = answer_match.group(1).strip()
 

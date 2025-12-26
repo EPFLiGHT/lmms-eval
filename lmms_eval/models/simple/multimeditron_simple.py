@@ -1,7 +1,7 @@
 import logging
 from typing import List, Tuple, Optional, Dict, Any
 from multimeditron.dataset.loader import FileSystemImageLoader, RawImageLoader
-from multimeditron.model.model import MultiModalModelForCausalLM
+from multimeditron.model.model import ChatTemplate, MultiModalModelForCausalLM
 from multimeditron.model.data_loader import DataCollatorForMultimodal
 import torch
 import torch.nn.functional as F
@@ -45,22 +45,21 @@ class MultiMeditronSimple(lmms):
 
         loader = RawImageLoader()
 
-        attachment_token_idx = self.tokenizer.convert_tokens_to_ids(attachment_token) 
         self.collator = DataCollatorForMultimodal(
                 tokenizer=self.tokenizer,
-                tokenizer_type=tokenizer_type,
+                attachment_token=self.attachment_token,
+                chat_template=ChatTemplate.from_name(tokenizer_type),
                 modality_processors=self.model.processors(), 
                 modality_loaders={"image" : loader},
-                attachment_token_idx=attachment_token_idx,
                 add_generation_prompt=False,
         )
 
         self.prompt_collator = DataCollatorForMultimodal(
                 tokenizer=self.tokenizer,
-                tokenizer_type=tokenizer_type,
+                attachment_token=self.attachment_token,
+                chat_template=ChatTemplate.from_name(tokenizer_type),
                 modality_processors=self.model.processors(), 
                 modality_loaders={"image" : loader},
-                attachment_token_idx=attachment_token_idx,
                 add_generation_prompt=True,
         )
 
@@ -78,6 +77,11 @@ class MultiMeditronSimple(lmms):
             messages = self._build_messages(request)
 
             batch = self.collator([messages])
+
+            batch["input_ids"] = batch["input_ids"].to(self.device)
+            batch["position_ids"] = batch["position_ids"].to(self.device)
+            batch["attention_mask"] = batch["attention_mask"].to(self.device)
+            batch["labels"] = batch["labels"].to(self.device)
             
             prompt_ids = self.compute_prompt_ids(messages).to(self.device)
             continuation_ids = batch["input_ids"][0, len(prompt_ids) : -self.eos_length].to(self.device)
@@ -89,6 +93,8 @@ class MultiMeditronSimple(lmms):
             greedy_tokens = logits.argmax(dim=-1).to(self.device)
 
             greedy_tokens = greedy_tokens[prompt_ids.shape[0] - 1: -self.eos_length]
+
+            # print("Decoded", self.tokenizer.decode(greedy_tokens), "continuation_ids", self.tokenizer.decode(continuation_ids)) 
 
             max_equal = (greedy_tokens == continuation_ids).all()
 

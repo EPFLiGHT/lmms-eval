@@ -4,7 +4,7 @@ import os
 import re
 import zipfile
 from functools import lru_cache
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from PIL import Image
 from loguru import logger as eval_logger
 from huggingface_hub import snapshot_download
@@ -167,6 +167,21 @@ def slake_process_results(
     qid = str(doc.get("qid", "")) or f"{doc.get('img_name','')}::{doc.get('question','')}"[:256]
 
     return {"accuracy": {"question_id": qid, "score": score}}
+
+
+def slake_simple_process_results(
+        doc: Dict[str, Any],
+        results: List[Tuple[float, bool]],
+        lmms_eval_specific_kwargs: Optional[Dict[str, Any]] = None):
+
+    if not _is_en(doc):
+        return {}
+
+    if len(results) > 1:
+        raise ValueError(f"loglikelihood returned {len(results)} elements, please use batch size at 1 when evaluating on loglikelihood")
+
+    return results[0]
+
 
 def slake_aggregate_results(results: List[Dict[str, Any]]) -> float:
     if not results:

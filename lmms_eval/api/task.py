@@ -1487,6 +1487,7 @@ class ConfigurableTask(Task):
         result_dict = {}
         use_metric = list(self._metric_fn_list.keys())
         if self.OUTPUT_TYPE == "loglikelihood":
+            results = results[0]
             ll, is_greedy = results
             return {
                 **({"perplexity": ll} if "perplexity" in use_metric else {}),

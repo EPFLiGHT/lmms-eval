@@ -1,7 +1,7 @@
 import logging
 from typing import List, Tuple, Optional, Dict, Any
 from multimeditron.dataset.loader import FileSystemImageLoader, RawImageLoader
-from multimeditron.model.model import MultiModalModelForCausalLM
+from multimeditron.model.model import ChatTemplate, MultiModalModelForCausalLM
 from multimeditron.model.data_loader import DataCollatorForMultimodal
 import torch
 import torch.nn.functional as F
@@ -16,7 +16,7 @@ from lmms_eval.api.registry import register_model
 
 @register_model("multimeditron")
 class MultiMeditron(lmms):
-    is_simple = True
+    is_simple = False
 
     def __init__(self, pretrained: str, device: str = "cuda", 
                  attachment_token: str = "<|reserved_special_token_0|>", 
@@ -46,13 +46,12 @@ class MultiMeditron(lmms):
 
         loader = RawImageLoader()
 
-        attachment_token_idx = self.tokenizer.convert_tokens_to_ids(attachment_token) 
         self.collator = DataCollatorForMultimodal(
                 tokenizer=self.tokenizer,
-                tokenizer_type=tokenizer_type,
+                attachment_token=self.attachment_token,
+                chat_template=ChatTemplate.from_name(tokenizer_type),
                 modality_processors=self.model.processors(), 
                 modality_loaders={"image" : loader},
-                attachment_token_idx=attachment_token_idx,
                 add_generation_prompt=True,
         )
 
@@ -122,6 +121,10 @@ class MultiMeditron(lmms):
             "conversations": mapped_messages,
             "modalities": modalities
         }
+
+
+    def loglikelihood(self, requests: List[Instance]) -> List[Tuple[float, bool]]:
+        ...
         
     def generate_until_multi_round(self, requests) -> List[str]:
         return super().generate_until_multi_round(requests)
