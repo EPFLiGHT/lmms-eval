@@ -16,7 +16,7 @@ lmms_eval_specific_kwargs:
     post_prompt: "Let's think step by step. Detail your reasoning before answering carefully. Your answer should have the following format: <reasoning leading to the answer> Answer: <letter> The <letter> is chosen amongst the possible options (A, B, C, D or E)"
 
 generation_kwargs:
-  max_new_tokens: 2048
+  max_new_tokens: 4096
   temperature: 0
   do_sample: False
 
