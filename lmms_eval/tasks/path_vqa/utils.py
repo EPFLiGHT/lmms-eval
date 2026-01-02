@@ -39,7 +39,8 @@ def _extract_final_answer(text: str) -> str:
     """Prefer the LAST 'Answer: ...'; else last non-empty line."""
     if not text:
         return ""
-    m = list(re.finditer(r"answer\s*[:\-]\s*(.+)", text, re.IGNORECASE))
+
+    m = list(re.finditer(r"(?i)answer\W(?:is)*\W*([A-D])(?:\W|$)|(?:answer|boxed)?{\W*([A-D])\W+", text, re.IGNORECASE))
     if m:
         return m[-1].group(1).strip()
     for line in reversed([ln.strip() for ln in text.splitlines()]):

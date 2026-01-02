@@ -20,7 +20,6 @@ class MultiMeditron(lmms):
 
     def __init__(self, pretrained: str, device: str = "cuda", 
                  attachment_token: str = "<|reserved_special_token_0|>", 
-                 batch_size: int = 4,
                  tokenizer_type: str = "llama",
                  **kwargs):
         super().__init__()
@@ -55,35 +54,22 @@ class MultiMeditron(lmms):
                 add_generation_prompt=True,
         )
 
-        self.batch_size = int(batch_size)
-
     
     def generate_until(self, requests: List[Instance]) -> List[str]:
         results = []
-        all_messages = []
-
-        single_gen_kwargs = None
 
         for request in tqdm(requests, desc="Processing requests"):
             question, doc_to_messages, gen_kwargs, doc_id, task, split = request.args
             doc = self.task_dict[task][split][doc_id]
             
             messages = self.map_messages_to_multimeditron_format(doc_to_messages(doc))
-            all_messages.append(messages)
 
-            single_gen_kwargs = gen_kwargs if single_gen_kwargs is None else single_gen_kwargs
-
-        if single_gen_kwargs is None:
-            single_gen_kwargs = {}
-        
-        with torch.autocast(self.device, self.model.dtype):
-            for i in tqdm(range(0, len(all_messages), self.batch_size), desc="Generating responses"):
-                batch_messages = all_messages[i:i + self.batch_size]
-                batch = self.collator(batch_messages)
+            with torch.autocast(self.device, self.model.dtype):
+                batch = self.collator([messages])
 
                 outputs = self.model.generate(
                     batch=batch,
-                    **single_gen_kwargs
+                    **gen_kwargs
                 )
 
                 decoded_outputs = self.tokenizer.batch_decode(outputs, skip_special_tokens=True, clean_up_tokenization_spaces=True)

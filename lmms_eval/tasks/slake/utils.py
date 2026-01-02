@@ -48,7 +48,7 @@ def _normalize_vqa(s: str) -> str:
 def _extract_final_answer(text: str) -> str:
     if not text:
         return ""
-    m = list(re.finditer(r"answer\s*[:\-]\s*(.+)", text, flags=re.IGNORECASE))
+    m = list(re.finditer(r"(?i)answer\W(?:is)*\W*([A-D])(?:\W|$)|(?:answer|boxed)?{\W*([A-D])\W+", text, flags=re.IGNORECASE))
     if m:
         return m[-1].group(1).strip()
     for line in reversed([ln.strip() for ln in text.splitlines()]):
