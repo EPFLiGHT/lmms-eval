@@ -15,7 +15,7 @@ from lmms_eval.api.registry import register_model
 class Molmo2(lmms):
     is_simple = False
 
-    def __init__(self, pretrained: str = "allenai/Molmo2-O-7B", 
+    def __init__(self, pretrained: str, 
                  device: str = "cuda", 
                  batch_size: int = 4,
                  **kwargs):

@@ -18,9 +18,13 @@ generation_kwargs:
   temperature: 0
 
 metric_list:
-  - metric: accuracy
+  - metric: overall_acc
     aggregation: !function utils.pathvqa_aggregate_results
     higher_is_better: true
+  - metric: binary_acc
+    aggregation: !function utils.pathvqa_aggregate_binary_results
+    higher_is_better: true
+
 
 process_results: !function utils.pathvqa_process_results
 

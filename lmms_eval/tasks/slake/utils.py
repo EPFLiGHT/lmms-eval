@@ -163,10 +163,22 @@ def slake_process_results(
     parsed = _extract_final_answer(pred_raw)
     pred_norm = _normalize_vqa(parsed)
     target_norm = _normalize_vqa(slake_doc_to_target(doc))
+
+    is_binary = (target_norm == "yes" or target_norm == "no")
     score = 1.0 if (pred_norm == target_norm and pred_norm != "") else 0.0
     qid = str(doc.get("qid", "")) or f"{doc.get('img_name','')}::{doc.get('question','')}"[:256]
 
-    return {"accuracy": {"question_id": qid, "score": score}}
+    return {
+        "overall_acc": {
+            "question_id": qid, 
+            "score": score
+        },
+        "binary_acc": {
+            "question_id": qid, 
+            "score": score,
+            "is_binary" : is_binary
+        }
+    }
 
 
 def slake_simple_process_results(
@@ -197,5 +209,27 @@ def slake_aggregate_results(results: List[Dict[str, Any]]) -> float:
         total += float(acc)
         count += 1
     pct = (total / count) * 100.0 if count else 0.0
-    eval_logger.info(f"SLAKE Accuracy: {pct:.2f}")
+    eval_logger.info(f"SLAKE Overall Accuracy: {pct:.2f}")
     return pct
+
+def slake_aggregate_binary_results(results: List[Dict[str, Any]]) -> float:
+    if not results:
+        return 0.0
+    total = 0.0
+    count = 0
+    for r in results:
+        if not r.get("is_binary", False):
+            continue
+
+        acc = r.get("accuracy", {}).get("score", None)
+        if acc is None:
+            acc = r.get("score", None)
+        if acc is None:
+            continue
+        total += float(acc)
+        count += 1
+
+    pct = (total / count) * 100.0 if count else 0.0
+    eval_logger.info(f"SLAKE Yes/No Accuracy: {pct:.2f}")
+    return pct
+ 

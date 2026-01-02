@@ -93,9 +93,21 @@ def pathvqa_process_results(
     p = _normalize_vqa(pred)
     t = _normalize_vqa(pathvqa_doc_to_target(doc))
     score = 1.0 if (p == t and p != "") else 0.0
+    is_binary = (t == "yes" or t == "no") 
 
     qid = f"{doc.get('question','')[:200]}::{doc.get('answer','')[:40]}"
-    return {"accuracy": {"question_id": qid, "score": score}}
+    return {
+        "overall_acc": {
+            "question_id": qid, 
+            "score": score
+        }, 
+        "binary_acc": {
+            "is_binary" : is_binary,
+            "question_id" : qid,
+            "score" : score
+        }
+    }
+
 
 def pathvqa_aggregate_results(results: List[Dict[str, Any]]) -> float:
     """Aggregate accuracy (%) over emitted item dicts."""
@@ -104,7 +116,7 @@ def pathvqa_aggregate_results(results: List[Dict[str, Any]]) -> float:
     total = 0.0
     count = 0
     for r in results:
-        acc = r.get("accuracy", {}).get("score", None)
+        acc = r.get("overall_acc", {}).get("score", None)
         if acc is None:
             acc = r.get("score", None)
         if acc is None:
@@ -112,5 +124,28 @@ def pathvqa_aggregate_results(results: List[Dict[str, Any]]) -> float:
         total += float(acc)
         count += 1
     pct = (total / count) * 100.0 if count else 0.0
-    eval_logger.info(f"PathVQA Accuracy: {pct:.2f}")
+
+    eval_logger.info(f"PathVQA Overall Accuracy: {pct:.2f}")
+    return pct
+
+def pathvqa_aggregate_binary_results(results: List[Dict[str, Any]]) -> float:
+    """Aggregate accuracy (%) over emitted item dicts."""
+    if not results:
+        return 0.0
+    total = 0.0
+    count = 0
+    for r in results:
+        if not r.get("is_binary", False):
+            continue
+        acc = r.get("score", None)
+        if acc is None:
+            acc = r.get("score", None)
+        if acc is None:
+            continue
+        total += float(acc)
+        count += 1
+
+    pct = (total / count) * 100.0 if count else 0.0
+    eval_logger.info(f"PathVQA Yes/No Accuracy: {pct:.2f}")
+    
     return pct
