@@ -149,3 +149,5 @@ def pathvqa_aggregate_binary_results(results: List[Dict[str, Any]]) -> float:
     eval_logger.info(f"PathVQA Yes/No Accuracy: {pct:.2f}")
     
     return pct
+
+

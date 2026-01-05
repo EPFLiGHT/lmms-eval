@@ -73,32 +73,31 @@ class MultiMeditronSimple(lmms):
 
     def loglikelihood(self, requests: List[Instance]) -> List[Tuple[float, bool]]:
         res = []
-        for request in tqdm(requests, desc="Processing requests"):
-            messages = self._build_messages(request)
+        with torch.autocast(device_type=self.device, dtype=torch.bfloat16), torch.no_grad():
+            for request in tqdm(requests, desc="Processing requests"):
+                messages = self._build_messages(request)
 
-            batch = self.collator([messages])
+                batch = self.collator([messages])
 
-            batch["input_ids"] = batch["input_ids"].to(self.device)
-            batch["position_ids"] = batch["position_ids"].to(self.device)
-            batch["attention_mask"] = batch["attention_mask"].to(self.device)
-            batch["labels"] = batch["labels"].to(self.device)
-            
-            prompt_ids = self.compute_prompt_ids(messages).to(self.device)
-            continuation_ids = batch["input_ids"][0, len(prompt_ids) : -self.eos_length].to(self.device)
+                batch["input_ids"] = batch["input_ids"].to(self.device)
+                batch["position_ids"] = batch["position_ids"].to(self.device)
+                batch["attention_mask"] = batch["attention_mask"].to(self.device)
+                batch["labels"] = batch["labels"].to(self.device)
+                
+                prompt_ids = self.compute_prompt_ids(messages).to(self.device)
+                continuation_ids = batch["input_ids"][0, len(prompt_ids) : -self.eos_length].to(self.device)
 
-            outputs = self.model(**batch)
+                outputs = self.model(**batch)
 
-            loss = outputs["loss"]
-            logits = outputs["logits"][0][:-1]
-            greedy_tokens = logits.argmax(dim=-1).to(self.device)
+                loss = outputs["loss"]
+                logits = outputs["logits"][0][:-1]
+                greedy_tokens = logits.argmax(dim=-1).to(self.device)
 
-            greedy_tokens = greedy_tokens[prompt_ids.shape[0] - 1: -self.eos_length]
+                greedy_tokens = greedy_tokens[prompt_ids.shape[0] - 1: -self.eos_length]
 
-            # print("Decoded", self.tokenizer.decode(greedy_tokens), "continuation_ids", self.tokenizer.decode(continuation_ids)) 
+                max_equal = (greedy_tokens == continuation_ids).all()
 
-            max_equal = (greedy_tokens == continuation_ids).all()
-
-            res.append((float(loss.item()), bool(max_equal)))
+                res.append((loss.item(), bool(max_equal)))
 
         return res
 

@@ -34,5 +34,5 @@ metadata:
 lmms_eval_specific_kwargs:
   default:
     pre_prompt: ""
-    post_prompt: "\nAnswer with a single short word or phrase only (no punctuation, no explanation). If the answer is affirmative, reply 'Yes'; if negative, reply 'No'."
+    post_prompt: "\nAnswer with a single short word or phrase only (no punctuation, no explanation). For yes/no questions, answer only “Yes” or “No”."
     # post_prompt: "Let's think step by step. Detail your reasoning before answering carefully. Your answer should have the following format: <reasoning leading to the answer> Answer: <final answer>. If the answer is affirmative, reply 'Yes'; if negative, reply 'No'."
