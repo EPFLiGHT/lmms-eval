@@ -21,11 +21,16 @@ class MultiMeditron(lmms):
     def __init__(self, pretrained: str, device: str = "cuda", 
                  attachment_token: str = "<|reserved_special_token_0|>", 
                  tokenizer_type: str = "llama",
+                 use_2d_position_ids: bool = False,
                  **kwargs):
         super().__init__()
 
         self.device = device
         self.model = MultiModalModelForCausalLM.from_pretrained(pretrained, dtype=torch.bfloat16)
+
+        if isinstance(use_2d_position_ids, str):
+            use_2d_position_ids = use_2d_position_ids.lower() == "true"
+        self.use_2d_position_ids = use_2d_position_ids
 
         self.model.to(self.device)
         self.attachment_token = attachment_token
@@ -46,12 +51,13 @@ class MultiMeditron(lmms):
         loader = RawImageLoader()
 
         self.collator = DataCollatorForMultimodal(
-                tokenizer=self.tokenizer,
-                attachment_token=self.attachment_token,
-                chat_template=ChatTemplate.from_name(tokenizer_type),
-                modality_processors=self.model.processors(), 
-                modality_loaders={"image" : loader},
-                add_generation_prompt=True,
+            tokenizer=self.tokenizer,
+            attachment_token=self.attachment_token,
+            chat_template=ChatTemplate.from_name(tokenizer_type),
+            modality_processors=self.model.processors(),
+            modality_loaders={"image" : loader},
+            add_generation_prompt=True,
+            use_2d_position_ids=self.use_2d_position_ids,
         )
 
     
