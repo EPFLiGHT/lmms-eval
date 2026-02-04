@@ -6,17 +6,7 @@ import numpy as np
 import yaml
 from PIL import Image
 
-from lmms_eval.tasks.phyx.phyx_evals import PhyXEvaluator
-
-
-def load_phyx_config():
-    with open(Path(__file__).parent / "phyx.yaml", "r") as f:
-        raw_data = f.readlines()
-        safe_data = []
-        for line in raw_data:
-            if "!function" not in line:
-                safe_data.append(line)
-        return yaml.safe_load("".join(safe_data))
+from lmms_eval.tasks.phyx.phyx_evals import PhyXEvaluator, load_phyx_config
 
 
 config = load_phyx_config()

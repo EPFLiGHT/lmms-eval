@@ -1,11 +1,22 @@
 import ast
+import yaml
 import os
 import re
 import time
 
 from loguru import logger as eval_logger
 from openai import OpenAI
-from utils import load_phyx_config
+from pathlib import Path
+
+
+def load_phyx_config():
+    with open(Path(__file__).parent / "phyx.yaml", "r") as f:
+        raw_data = f.readlines()
+        safe_data = []
+        for line in raw_data:
+            if "!function" not in line:
+                safe_data.append(line)
+        return yaml.safe_load("".join(safe_data))
 
 FAIL_MSG = "Failed to obtain answer via API."
 config = load_phyx_config()
@@ -15,15 +26,17 @@ class PhyXEvaluator:
     def __init__(self):
         if not config["metadata"]["quick_extract"]:
             self.juder_model = config["metadata"]["eval_model_name"]
-            API_URL = "https://api.deepseek.com"
-            API_KEY = os.getenv("Deepseek_API", "")
-            if API_KEY == "":
-                eval_logger.error("To judge via Deepseek, please set api env following `export Deepseek_API=$Your_KEY`")
-            self.headers = {
-                "Authorization": f"Bearer {API_KEY}",
-                "Content-Type": "application/json",
-            }
-            self.client = OpenAI(api_key=API_KEY, base_url=API_URL)
+            # API_URL = "https://api.deepseek.com"
+            API_URL = "http://0.0.0.0:8000/v1"
+            #API_KEY = os.getenv("Deepseek_API", "")
+            # if API_KEY == "":
+            #     eval_logger.error("To judge via Deepseek, please set api env following `export Deepseek_API=$Your_KEY`")
+            # self.headers = {
+            #     "Authorization": f"Bearer {API_KEY}",
+            #     "Content-Type": "application/json",
+            # }
+            #self.client = OpenAI(api_key=API_KEY, base_url=API_URL)
+            self.client = "http://0.0.0.0:8000/v1"
         else:
             self.juder_model = None
             self.headers = None
